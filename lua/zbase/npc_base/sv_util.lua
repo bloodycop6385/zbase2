@@ -487,7 +487,7 @@ function NPC:IterateNearbyAllies( lenght, func )
     for k, v in ipairs(ents.FindInBox(mypos-vec_add, mypos+vec_add)) do
 
         amt = k
-        
+
         if v == self then continue end
         if !v:IsNPC() then continue end
 
@@ -579,9 +579,10 @@ function NPC:GetNearestAlly( radius )
         local v = nearBy[i]
         local dist = self:GetPos():DistToSqr(v:GetPos())
 
-    for _, v in ipairs(nearbyAllies) do
-        ally = v
-        break
+        if !mindist or dist < mindist then
+            mindist = dist
+            ally = v
+        end
     end
 
     return ally
@@ -619,7 +620,7 @@ function NPC:InduceDeath( dmginfo )
         attacker = dmginfo:GetAttacker()
         dmgtype = dmginfo:GetDamageType()
     end
-    
+
     -- Death anim workaround
     if self.DoingDeathAnim then
         -- Mark us as not doing death animation
