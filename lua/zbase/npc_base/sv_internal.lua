@@ -1590,8 +1590,8 @@ function NPC:LUAAnimEventThink()
 			local frameNew = math.floor( self:GetCycle() * self.ZBaseLuaAnimationFrames[ seq ] )	-- Despite what the wiki says, GetCycle doesn't return the frame, but a float between 0 and 1
 			for frame = self.ZBaseFrameLast + 1, frameNew do	-- a loop, just in case the think function is too slow to catch all frame changes
 				if ( self.ZBaseLuaAnimEvents[ seq ][ frame ] ) then
-					for i = 1, #self.ZBaseLuaAnimEvents[ seq ][ frame ] do
-                        self:InternalHandleAnimationEvent( seq, self.ZBaseLuaAnimEvents[ seq ][ frame ][ i ] )
+					for _, ev in ipairs( self.ZBaseLuaAnimEvents[ seq ][ frame ] ) do
+                        self:InternalHandleAnimationEvent( seq, ev )
 					end
 				end
 			end
@@ -1610,8 +1610,8 @@ function NPC:LUAAnimEventThink()
 			local gestFrameNew = math.floor( self:GetLayerCycle( layer ) * self.ZBaseLuaAnimationFrames[ gest ] )	-- Despite what the wiki says, GetCycle doesn't return the frame, but a float between 0 and 1
 			for gFrame = self.m_gestFrameLast + 1, gestFrameNew do	-- a loop, just in case the think function is too slow to catch all frame changes
 				if ( self.ZBaseLuaAnimEvents[ gest ][ gFrame ] ) then
-					for i = 1, #self.ZBaseLuaAnimEvents[ gest ][ gFrame ] do
-                        self:InternalHandleAnimationEvent( gest, self.ZBaseLuaAnimEvents[ gest ][ gFrame ][ i ] )
+					for _, ev in ipairs( self.ZBaseLuaAnimEvents[ gest ][ gFrame ] ) do
+                        self:InternalHandleAnimationEvent( gest, ev )
 					end
 				end
 			end
@@ -2016,10 +2016,15 @@ function NPC:AI_OnHurt( dmg, MoreThan0Damage )
     -- Bloody cop's AI implementation
     -- Alerts npcs who saw their ally get hurt of the ally's enemy
     if !self.DontAlertAlliesOnHurt && !ZBase_DontDontAlertAlliesOnHurt then
-        self:IterateNearbyAllies(4000, function(npc)
-            if ( npc:Disposition( self ) != D_LI or !npc:IsLineOfSightClear( self ) ) then return end
+        self:IterateNearbyAllies(4096, function(npc)
+            if ( npc:Disposition( self ) != D_LI or !npc:Visible( self ) ) then return end
+
             if ( IsValid( self:GetEnemy() ) ) then
                 npc:UpdateEnemyMemory( self:GetEnemy(), self:GetPos() )
+                -- comment@ bloodycop6385 : let's not assume that SELF was attacked by enemy. ( Rogue Rebel or smth LOL )
+                -- comment@ Zippy6666 : what
+                -- npc:SetNPCState( NPC_STATE_COMBAT )
+                -- npc:AddEntityRelationship( self:GetEnemy(), D_HT )
             end
         end)
 

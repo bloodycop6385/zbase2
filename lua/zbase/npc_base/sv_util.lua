@@ -473,20 +473,17 @@ end
 --      func[[npc], nil]
 -- Returns:
 --      nil
-function NPC:IterateNearbyAllies( lenght, func )
-    if !cacheGetNearbyAlliesOptimized[lenght] then
-        local halflenght = lenght*0.5
-        local vec = Vector(halflenght, halflenght, halflenght)
-        cacheGetNearbyAlliesOptimized[lenght] = vec
+function NPC:IterateNearbyAllies( length, func )
+    if !cacheGetNearbyAlliesOptimized[length] then
+        local halfLength = length * 0.5
+        local vec = Vector(halfLength, halfLength, halfLength)
+        cacheGetNearbyAlliesOptimized[length] = vec
     end
 
-    local vec_add = cacheGetNearbyAlliesOptimized[lenght]
+    local vec_add = cacheGetNearbyAlliesOptimized[length]
 
     local mypos = self:GetPos()
-    local amt = 0
-    for k, v in ipairs(ents.FindInBox(mypos-vec_add, mypos+vec_add)) do
-
-        amt = k
+    for k, v in ipairs(ents.FindInBox(mypos - vec_add, mypos + vec_add)) do
 
         if v == self then continue end
         if !v:IsNPC() then continue end
@@ -511,12 +508,9 @@ function NPC:GetNearbyAlliesOptimized( lenght )
     local vec_add = cacheGetNearbyAlliesOptimized[lenght]
 
     local mypos = self:GetPos()
-    local amt = 0
     local entsInBox = ents.FindInBox(mypos-vec_add, mypos+vec_add)
     for i = 1, #entsInBox do
         local v = entsInBox[i]
-        amt = i
-
         if v == self then continue end
         if !v.IsZBaseNPC then continue end
 
