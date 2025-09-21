@@ -187,30 +187,48 @@ end
 -- ZBase muzzle light option must be enabled!
 function ZBaseMuzzleLight( pos, bright, dist, col, dur )
     if !SERVER then return end
-    if !ZBCVAR.MuzzleLight:GetBool() then return end
 
-    dur = dur or 0.05
+    local zbase_muzzle_light = ZBCVAR.MuzzleLight
+    if !zbase_muzzle_light:GetBool() then return end
 
-    local muzzleLight1 = ents.Create("env_projectedtexture")
-    local muzzleLight2 = ents.Create("env_projectedtexture")
+    -- HIGH quality light using projected textures
+    if zbase_muzzle_light:GetInt() >= 2 then
+        dur = dur or 0.05
 
-    if IsValid(muzzleLight1) && IsValid(muzzleLight2) then
-        bright = math.Rand(bright*0.1, bright)
+        local muzzleLight1 = ents.Create("env_projectedtexture")
+        local muzzleLight2 = ents.Create("env_projectedtexture")
 
-        local muzzleLights = {muzzleLight1, muzzleLight2}
-        for i = 1, 2 do
-            local muzzleLight = muzzleLights[i]
-            local ang = i == 1 and Angle(0, 90, 0) or Angle(0, 270, 0)
+        if IsValid(muzzleLight1) && IsValid(muzzleLight2) then
+            bright = math.Rand(bright*0.1, bright)
+
+            for k, muzzleLight in ipairs({muzzleLight1, muzzleLight2}) do
+                local ang = k == 1 && Angle(0, 90, 0) or Angle(0, 270, 0)
+                muzzleLight:SetPos(pos)
+                muzzleLight:SetAngles(ang)
+                muzzleLight:SetKeyValue("enableshadows", 0)
+                muzzleLight:SetKeyValue("lightcolor", col)
+                muzzleLight:SetKeyValue("farz", dist)
+                muzzleLight:SetKeyValue("nearz", 1)
+                muzzleLight:SetKeyValue("lightfov", 179.99)
+                muzzleLight:SetKeyValue("lightstrength", bright)
+                muzzleLight:Spawn()
+                muzzleLight:Activate()
+                SafeRemoveEntityDelayed(muzzleLight, dur)
+            end
+        end
+    -- Normal lights using dynamic lights
+    else
+        dur = dur or 0.1
+
+        local muzzleLight = ents.Create("light_dynamic")
+        if IsValid(muzzleLight) then
             muzzleLight:SetPos(pos)
-            muzzleLight:SetAngles(ang)
-            muzzleLight:SetKeyValue("enableshadows", 0)
-            muzzleLight:SetKeyValue("lightcolor", col)
-            muzzleLight:SetKeyValue("farz", dist)
-            muzzleLight:SetKeyValue("nearz", 1)
-            muzzleLight:SetKeyValue("lightfov", 179.99)
-            muzzleLight:SetKeyValue("lightstrength", bright)
+            muzzleLight:SetKeyValue("brightness", tostring(bright))
+            muzzleLight:SetKeyValue("distance", tostring(dist))
+            muzzleLight:Fire("Color", col)
             muzzleLight:Spawn()
             muzzleLight:Activate()
+            muzzleLight:Fire("TurnOn", "1")
             SafeRemoveEntityDelayed(muzzleLight, dur)
         end
     end

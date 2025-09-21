@@ -1,4 +1,4 @@
-local Developer             = GetConVar("developer")
+local ai_disabled = GetConVar("ai_disabled")
 ReloadedSpawnmenuRecently   = false
 
 --[[
@@ -149,40 +149,21 @@ end)
 --]]
 
 if SERVER then
-    local NextThink = CurTime()
     local NextBehaviourThink = CurTime()
 
     hook.Add("Tick", "ZBASE", function()
-        -- Regular think for non-scripted NPCs
-        -- if NextThink < CurTime() then
-        --     for _, zbaseNPC in ipairs(ZBaseNPCInstances_NonScripted) do
-        --         zbaseNPC:ZBaseThink()
-
-        --         if zbaseNPC.Patch_Think then
-        --             zbaseNPC:Patch_Think()
-        --         end
-        --     end
-
-        --     NextThink = CurTime()+0.1
-        -- end
-
         -- Behaviour tick
-        if !GetConVar("ai_disabled"):GetBool()
-        && NextBehaviourThink < CurTime() then
-            for i = #ZBaseBehaviourTimerFuncs, 1, -1 do
-                local func = ZBaseBehaviourTimerFuncs[i]
+        if !ai_disabled:GetBool() && NextBehaviourThink < CurTime() then
+            -- Do whatever this does lol
+            for k, func in ipairs(ZBaseBehaviourTimerFuncs) do
                 local entValid = func()
-
-                if not entValid then
-                    table.remove(ZBaseBehaviourTimerFuncs, i)
+                if !entValid then
+                    table.remove(ZBaseBehaviourTimerFuncs, k)
                 end
             end
 
+            -- .. and delay
             NextBehaviourThink = CurTime() + 0.4
-        end
-
-        for i = 1, #ZBaseNPCInstances do
-            ZBaseNPCInstances[i]:FrameTick()
         end
     end)
 end
@@ -280,7 +261,20 @@ end)
 
 hook.Add("EntityFireBullets", "ZBASE", function( ent, data )
     if SERVER && ent.IsZBaseNPC then
-        local return_value = ent:OnFireBullet( data )
+        local return_value
+
+        -- Internal fire bullet function
+        return_value = ent:InternalOnFireBullet( data )
+        if return_value == false then
+            data.Num = 0
+            data.Distance = 0
+            return true
+        elseif return_value == true then
+            return true
+        end
+
+        -- User defined fire bullet function
+        return_value = ent:OnFireBullet( data )
         if return_value == false then
             data.Num = 0
             data.Distance = 0
@@ -290,9 +284,12 @@ hook.Add("EntityFireBullets", "ZBASE", function( ent, data )
         end
     end
 
+    -- Don't throw bullets at allies we cannot hurt
     if SERVER && !ZBCVAR.PlayerHurtAllies:GetBool() && ZBaseNPCCount > 0 then
         local own = ent:GetOwner()
-        local shooterPly = (own:IsPlayer() && own) or (ent:IsPlayer() && ent)
+        local shooterPly = (own:IsPlayer()
+                                && !own.ZBASE_ControlledNPC -- Prevent this functionality if player is controlling an NPC
+                                    && own) || (ent:IsPlayer() && ent)
 
         if shooterPly then
             local tr = util.TraceLine({
@@ -534,7 +531,11 @@ end
 
 if CLIENT then
     net.Receive("ZBaseClientRagdoll", function()
-        local ent = net.ReadEntity() if !IsValid(ent) then return end
+        local ent = net.ReadEntity()
+        if !IsValid(ent) then
+            return
+        end
+
         ent:BecomeRagdollOnClient()
     end)
 end
@@ -543,7 +544,7 @@ end
 hook.Add("CreateClientsideRagdoll", "ZBaseRagHook", function(ent, rag)
     -- No ragdolls for "dull state" npcs
 	if ent:GetNWBool("ZBaseNPCCopy_DullState") then
-		rag:Remove()
+		SafeRemoveEntity(rag)
         return
 	end
 
@@ -636,10 +637,8 @@ end)
 hook.Add( "KeyPress", "ZBaseUse", function( ply, key )
     if !IsValid(ply) then return end
 
-
     local tr = ply:GetEyeTrace()
     local ent = tr.Entity
-
 
     if key == IN_USE && IsValid(ent) && ent.IsZBaseNPC && ent:ZBaseDist(ply, {within=200}) then
 
@@ -755,7 +754,7 @@ end
 -- Add ZBASE SWEPS to npc weapon menu if we should
 hook.Add("PreRegisterSWEP", "ZBASE", function( swep, class )
 	if swep.IsZBaseWeapon && class!="weapon_zbase" && swep.NPCSpawnable then
-		list.Add( "NPCUsableWeapons", { class = class, title = swep.PrintName } )
+		list.Add( "NPCUsableWeapons", { class = class, title = swep.PrintName.." ("..swep.Author..")" } )
         table.insert(ZBaseNPCWeps, class)
 	end
 end)
