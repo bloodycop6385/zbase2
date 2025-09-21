@@ -17,8 +17,7 @@ function NPC:ZBaseEmitScriptedSentence(sentence, pos, overrideTab, CRecipientFil
 	local stable = table.Copy( sentTab )
 	local captions = stable.caption && stable.caption[ 1 ] || ""
 
-	for i = 1, #stable.sound do
-		local snd = stable.sound[i]
+	for _, snd in ipairs( stable.sound ) do
 		local num = 1
 
 		if istable( snd ) && isstring( snd[ 1 ] ) then
